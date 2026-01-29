@@ -107,7 +107,6 @@ st.markdown("""
         color: #888;
     }
 
-    /* Comment Preview List */
     .preview-item {
         background: #FFF9FA;
         border-radius: 12px;
@@ -151,10 +150,6 @@ st.markdown("""
         color: var(--primary-color);
         font-weight: 700;
         margin: 10px 0;
-    }
-
-    hr {
-        border-top: 2px dashed #FEE;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -200,7 +195,7 @@ def get_instagram_accounts(token, mock=False):
         url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={token}"
         res = requests.get(url).json()
         pages = res.get('data', [])
-         accounts = []
+        accounts = [] # Fixed indentation
         for page in pages:
             url_ig = f"https://graph.facebook.com/v19.0/{page['id']}?fields=instagram_business_account&access_token={token}"
             res_ig = requests.get(url_ig).json()
@@ -233,7 +228,6 @@ def fetch_all_comments(post_ids, token, mock=False):
         return comments
     
     for pid in post_ids:
-        # Paging might be needed for many comments, but for simplicity:
         url = f"https://graph.facebook.com/v19.0/{pid}/comments?fields=id,username,text&access_token={token}"
         try:
             res = requests.get(url).json()
@@ -241,12 +235,17 @@ def fetch_all_comments(post_ids, token, mock=False):
         except: pass
     return comments
 
-# --- Main Logic ---
-def main():
+# --- Session State Initialization ---
+def init_state():
     if 'step' not in st.session_state: st.session_state.step = 1
     if 'selected_account' not in st.session_state: st.session_state.selected_account = None
+    if 'selected_posts' not in st.session_state: st.session_state.selected_posts = []
     if 'all_comments' not in st.session_state: st.session_state.all_comments = []
+    if 'winners' not in st.session_state: st.session_state.winners = []
 
+# --- Main Logic ---
+def main():
+    init_state()
     mock_mode = not ENV_TOKEN
     
     _, col, _ = st.columns([1, 2.5, 1])
@@ -258,6 +257,7 @@ def main():
             accounts = get_instagram_accounts(ENV_TOKEN, mock=mock_mode)
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
+                if not ENV_TOKEN: st.info("토큰이 없어 데모 모드로 동작 중입니다.")
             else:
                 account_options = {f"{acc['name']} (@{acc['username']})": acc for acc in accounts}
                 selected_name = st.selectbox("추첨할 계정", options=list(account_options.keys()))
@@ -268,11 +268,17 @@ def main():
 
         # Step 2: Post Selection
         elif st.session_state.step == 2:
+            # SAFETY GUARD
+            if not st.session_state.selected_account:
+                st.session_state.step = 1
+                st.rerun()
+                
             st.markdown(f'<div class="cute-card"><h3>2. 게시물을 골라주세요 ✨</h3><p>@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
             posts = get_posts(st.session_state.selected_account['id'], ENV_TOKEN, mock=mock_mode)
+            
             if not posts:
                 st.info("게시물이 없습니다.")
-                if st.button("뒤로 가기"): st.session_state.step = 1; st.rerun()
+                if st.button("← 뒤로 가기"): st.session_state.step = 1; st.rerun()
             else:
                 selected_ids = []
                 p_cols = st.columns(2)
@@ -288,6 +294,7 @@ def main():
                     if not selected_ids: st.error("게시물을 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
+                            st.session_state.selected_posts = selected_ids
                             st.session_state.all_comments = fetch_all_comments(selected_ids, ENV_TOKEN, mock=mock_mode)
                             st.session_state.step = 3
                             st.rerun()
@@ -295,15 +302,18 @@ def main():
 
         # Step 3: Draw Settings & Preview
         elif st.session_state.step == 3:
+            # SAFETY GUARD
+            if not st.session_state.all_comments and not mock_mode:
+                st.session_state.step = 2
+                st.rerun()
+                
             all_comments = st.session_state.all_comments
             st.markdown('<div class="cute-card"><h3>3. 추첨 대상을 확인해요 🍭</h3></div>', unsafe_allow_html=True)
             
-            # --- Config ---
             keyword = st.text_input("포함할 단어 (비워두면 전체)", placeholder="예: #이벤트")
             remove_duplicates = st.toggle("중복 참여 제외 (1인 1응모)", value=True)
             winners_count = st.number_input("추첨 인원", min_value=1, value=1)
             
-            # --- Filter Logic ---
             df_temp = pd.DataFrame(all_comments)
             if not df_temp.empty:
                 if keyword:
@@ -314,7 +324,6 @@ def main():
             else:
                 target_count = 0
             
-            # --- Visual Stats ---
             st.markdown(f"""
             <div class="count-container">
                 <div class="count-box">
@@ -328,7 +337,6 @@ def main():
             </div>
             """, unsafe_allow_html=True)
             
-            # --- PREVIEW LIST ---
             if target_count > 0:
                 with st.expander(f"📖 추첨 대상 명단 보기 ({target_count}명)", expanded=False):
                     for idx, row in df_temp.iterrows():
@@ -353,6 +361,11 @@ def main():
 
         # Step 4: Display Winners
         elif st.session_state.step == 4:
+            # SAFETY GUARD
+            if not st.session_state.winners:
+                st.session_state.step = 3
+                st.rerun()
+                
             st.balloons()
             st.markdown('<div class="cute-card"><h2 style="text-align:center;">🎉 축하드려요! 🎉</h2></div>', unsafe_allow_html=True)
             for w in st.session_state.winners:
