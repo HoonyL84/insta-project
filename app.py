@@ -81,32 +81,36 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    /* Instagram Style Post Card */
+    /* Instagram Style Post Card with selection status */
     .insta-post {
         background: white;
-        border: 1px solid #EFEFEF;
+        border: 2px solid #EFEFEF;
         border-radius: 12px;
-        margin-bottom: 25px;
+        margin-bottom: 15px;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: transform 0.2s;
-    }
-    .insta-post:hover {
-        transform: translateY(-5px);
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
     }
     
+    .insta-post.selected {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.3);
+        transform: scale(1.02);
+    }
+
     .insta-header {
         display: flex;
         align-items: center;
-        padding: 12px;
+        padding: 10px;
         border-bottom: 1px solid #FAFAFA;
     }
     .insta-avatar {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
-        margin-right: 10px;
+        margin-right: 8px;
         padding: 2px;
     }
     .insta-avatar-inner {
@@ -117,13 +121,13 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 12px;
         font-weight: bold;
         color: #FFB7C5;
     }
     .insta-username {
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
         color: #262626;
     }
 
@@ -131,6 +135,7 @@ st.markdown("""
         aspect-ratio: 1/1;
         overflow: hidden;
         background: #FAFAFA;
+        position: relative;
     }
     .insta-img-wrapper img {
         width: 100% !important;
@@ -138,12 +143,25 @@ st.markdown("""
         object-fit: cover !important;
     }
 
-    .insta-footer {
-        padding: 12px;
-        border-top: 1px solid #FAFAFA;
-        display: flex;
-        justify-content: center;
+    /* Selection Overlay Checkmark */
+    .selection-overlay {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: var(--primary-color);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: none;
         align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        z-index: 10;
+    }
+    .selected .selection-overlay {
+        display: flex;
     }
 
     /* Target Counts */
@@ -166,6 +184,7 @@ st.markdown("""
         color: var(--primary-color);
     }
 
+    /* Comment Preview List */
     .preview-item {
         background: #FFF9FA;
         border-radius: 12px;
@@ -265,6 +284,8 @@ def init_state():
     if 'selected_posts' not in st.session_state: st.session_state.selected_posts = []
     if 'all_comments' not in st.session_state: st.session_state.all_comments = []
     if 'winners' not in st.session_state: st.session_state.winners = []
+    # State to track post selection for visual feedback
+    if 'temp_selected_ids' not in st.session_state: st.session_state.temp_selected_ids = set()
 
 # --- Main Logic ---
 def main():
@@ -294,40 +315,51 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
                 
-            st.markdown(f'<div class="cute-card"><h3>2. 게시물을 골라주세요 ✨</h3><p style="font-size:0.9rem; text-align:center;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="cute-card"><h3 style="margin-bottom:5px;">2. 게시물을 터치해서 골라주세요 ✨</h3><p style="font-size:0.9rem; text-align:center; color:#888;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
             posts = get_posts(st.session_state.selected_account['id'], ENV_TOKEN, mock=mock_mode)
             
             if not posts:
                 st.info("게시물이 없습니다.")
                 if st.button("← 뒤로 가기"): st.session_state.step = 1; st.rerun()
             else:
-                selected_ids = []
+                # Local selection state management to avoid instant reruns if needed
                 p_cols = st.columns(3)
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        # --- Instagram Style Post Card ---
+                        is_selected = post['id'] in st.session_state.temp_selected_ids
+                        selected_class = "selected" if is_selected else ""
+                        
+                        # Render the card with visual state
                         st.markdown(f"""
-                        <div class="insta-post">
+                        <div class="insta-post {selected_class}">
                             <div class="insta-header">
                                 <div class="insta-avatar"><div class="insta-avatar-inner">U</div></div>
                                 <div class="insta-username">{st.session_state.selected_account['username']}</div>
                             </div>
                             <div class="insta-img-wrapper">
                                 <img src="{post['media_url']}">
+                                <div class="selection-overlay">✔</div>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                        # Checkbox outside the markdown HTML to stay interactive
-                        if st.checkbox(f"이 포스트 선택", key=post['id']):
-                            selected_ids.append(post['id'])
+                        
+                        # Transparent label button to toggle selection
+                        label = "✅ 선택됨" if is_selected else "➕ 선택하기"
+                        if st.button(label, key=f"btn_{post['id']}", use_container_width=True):
+                            if is_selected:
+                                st.session_state.temp_selected_ids.remove(post['id'])
+                            else:
+                                st.session_state.temp_selected_ids.add(post['id'])
+                            st.rerun()
                 
                 st.write("")
-                if st.button(f"다음 단계로 ({len(selected_ids)}개 선택됨) 🌸"):
-                    if not selected_ids: st.error("게시물을 선택해 주세요!")
+                count = len(st.session_state.temp_selected_ids)
+                if st.button(f"다음 단계로 ({count}개 선택됨) 🌸"):
+                    if count == 0: st.error("게시물을 최소 하나는 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
-                            st.session_state.selected_posts = selected_ids
-                            st.session_state.all_comments = fetch_all_comments(selected_ids, ENV_TOKEN, mock=mock_mode)
+                            st.session_state.selected_posts = list(st.session_state.temp_selected_ids)
+                            st.session_state.all_comments = fetch_all_comments(st.session_state.selected_posts, ENV_TOKEN, mock=mock_mode)
                             st.session_state.step = 3
                             st.rerun()
                 if st.button("계정 다시 선택", type="secondary"): st.session_state.step = 1; st.rerun()
@@ -406,6 +438,8 @@ def main():
                 </div>
                 ''', unsafe_allow_html=True)
             if st.button("처음으로 ✨"):
+                # Clear selection state as well when restarting
+                st.session_state.temp_selected_ids = set()
                 st.session_state.step = 1
                 st.rerun()
 
