@@ -12,7 +12,7 @@ ENV_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="U&JU(유앤쥬) - InstaDraw",
+    page_title="유앤쥬 - 인스타 추첨기",
     page_icon="🌸",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -81,38 +81,77 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    .post-container {
+    /* Instagram Style Post Card */
+    .insta-post {
         background: white;
-        border: 3px solid #FEE;
-        border-radius: 20px;
-        padding: 10px;
-        margin-bottom: 20px;
-        transition: border-color 0.3s, transform 0.2s;
-        text-align: center;
+        border: 1px solid #EFEFEF;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
     }
-    .post-container:hover {
-        border-color: var(--primary-color);
+    .insta-post:hover {
         transform: translateY(-5px);
     }
     
-    .post-img-wrapper {
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 10px;
-        height: 150px;
+    .insta-header {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        border-bottom: 1px solid #FAFAFA;
     }
-    .post-img-wrapper img {
-        object-fit: cover !important;
-        width: 100% !important;
-        height: 100% !important;
+    .insta-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        margin-right: 10px;
+        padding: 2px;
+    }
+    .insta-avatar-inner {
+        width: 100%;
+        height: 100%;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #FFB7C5;
+    }
+    .insta-username {
+        font-weight: 600;
+        font-size: 14px;
+        color: #262626;
     }
 
+    .insta-img-wrapper {
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        background: #FAFAFA;
+    }
+    .insta-img-wrapper img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    .insta-footer {
+        padding: 12px;
+        border-top: 1px solid #FAFAFA;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    /* Target Counts */
     .count-container {
         display: flex;
         gap: 15px;
         margin-bottom: 20px;
     }
-
     .count-box {
         flex: 1;
         text-align: center;
@@ -121,16 +160,10 @@ st.markdown("""
         border-radius: 15px;
         padding: 15px;
     }
-
     .count-val {
         font-size: 1.8rem;
         font-weight: 700;
         color: var(--primary-color);
-    }
-
-    .count-label {
-        font-size: 0.8rem;
-        color: #888;
     }
 
     .preview-item {
@@ -140,41 +173,14 @@ st.markdown("""
         margin-bottom: 8px;
         border-left: 5px solid var(--primary-color);
     }
-
-    .preview-user {
-        font-weight: 700;
-        color: var(--primary-color);
-        font-size: 0.9rem;
-    }
-
-    .preview-text {
-        font-size: 0.85rem;
-        color: #666;
-    }
-
-    .winner-box {
-        background: #FFF0F3;
-        border: 3px dashed var(--primary-color);
-        border-radius: 25px;
-        padding: 30px;
-        text-align: center;
-        margin-top: 20px;
-    }
-    
-    .winner-name {
-        font-size: 2.2rem;
-        color: var(--primary-color);
-        font-weight: 700;
-        margin: 10px 0;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- App Header ---
 st.markdown("""
 <div class="header">
-    <div class="header-title">🌸 U&JU (유앤쥬)</div>
-    <div class="header-subtitle">Simple & Sweet InstaDraw</div>
+    <div class="header-title">🌸 유앤쥬</div>
+    <div class="header-subtitle">Simple & Sweet 인스타 추첨기</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -274,12 +280,11 @@ def main():
             accounts = get_instagram_accounts(ENV_TOKEN, mock=mock_mode)
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
-                if not ENV_TOKEN: st.info("데모 모드로 동작 중입니다.")
             else:
                 account_options = {f"{acc['name']} (@{acc['username']})": acc for acc in accounts}
                 selected_name = st.selectbox("추첨할 계정", options=list(account_options.keys()))
                 st.session_state.selected_account = account_options[selected_name]
-                if st.button("게시물 불러오기 ✨"):
+                if st.button("내 게시물 불러오기 ✨"):
                     st.session_state.step = 2
                     st.rerun()
 
@@ -300,15 +305,24 @@ def main():
                 p_cols = st.columns(3)
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        with st.container():
-                            st.markdown('<div class="post-container">', unsafe_allow_html=True)
-                            st.markdown(f'<div class="post-img-wrapper"><img src="{post["media_url"]}"></div>', unsafe_allow_html=True)
-                            if st.checkbox(f"선택 {post['id'][-4:]}", key=post['id']):
-                                selected_ids.append(post['id'])
-                            st.markdown('</div>', unsafe_allow_html=True)
+                        # --- Instagram Style Post Card ---
+                        st.markdown(f"""
+                        <div class="insta-post">
+                            <div class="insta-header">
+                                <div class="insta-avatar"><div class="insta-avatar-inner">U</div></div>
+                                <div class="insta-username">{st.session_state.selected_account['username']}</div>
+                            </div>
+                            <div class="insta-img-wrapper">
+                                <img src="{post['media_url']}">
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        # Checkbox outside the markdown HTML to stay interactive
+                        if st.checkbox(f"이 포스트 선택", key=post['id']):
+                            selected_ids.append(post['id'])
                 
                 st.write("")
-                if st.button(f"댓글 불러오기 ({len(selected_ids)}개 선택됨) 🌸"):
+                if st.button(f"다음 단계로 ({len(selected_ids)}개 선택됨) 🌸"):
                     if not selected_ids: st.error("게시물을 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
@@ -316,7 +330,7 @@ def main():
                             st.session_state.all_comments = fetch_all_comments(selected_ids, ENV_TOKEN, mock=mock_mode)
                             st.session_state.step = 3
                             st.rerun()
-                if st.button("이전으로", type="secondary"): st.session_state.step = 1; st.rerun()
+                if st.button("계정 다시 선택", type="secondary"): st.session_state.step = 1; st.rerun()
 
         # Step 3: Draw Settings & Preview
         elif st.session_state.step == 3:
@@ -395,7 +409,7 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
 
-    st.markdown('<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 U&JU (유앤쥬) with Hoony 🌸</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 유앤쥬 with Hoony 🌸</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
