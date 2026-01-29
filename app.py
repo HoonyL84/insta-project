@@ -21,8 +21,8 @@ st.set_page_config(
 )
 
 # --- Cute & Simple Custom CSS ---
-# Use .format() to avoid f-string escaping nightmare for CSS/Mock data
-css_code = """
+# Using a single large f-string but carefully escaping CSS braces with double {{ and }}
+st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
 
@@ -84,7 +84,7 @@ css_code = """
         background-color: var(--accent-hover);
     }}
 
-    /* --- GHOST INTERACTION LAYER (ULTRA AGGRESSIVE) --- */
+    /* --- GHOST INTERACTION LAYER --- */
     .post-wrapper .element-container:has(div[data-testid="stCheckbox"]) {{
         position: absolute !important;
         top: 0 !important;
@@ -134,7 +134,6 @@ css_code = """
         position: relative;
         margin-bottom: 25px;
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        cursor: pointer;
     }}
     .post-wrapper:hover {{
         transform: translateY(-5px);
@@ -200,7 +199,6 @@ css_code = """
         object-fit: cover !important;
     }}
 
-    /* Custom Selection Overlay (Beautiful Checkmark) */
     .selection-overlay {{
         position: absolute;
         top: 10px;
@@ -222,7 +220,7 @@ css_code = """
         display: flex;
     }}
 
-    /* Target Counts Display */
+    /* Other UI Elements */
     .count-container {{
         display: flex;
         gap: 15px;
@@ -248,10 +246,27 @@ css_code = """
         padding: 10px 15px;
         margin-bottom: 8px;
         border-left: 5px solid var(--primary-color);
+        text-align: left;
+    }}
+    .preview-user {{ font-weight: 600; color: var(--primary-color); font-size: 0.9rem; }}
+    .preview-text {{ color: #555; font-size: 0.85rem; margin-top: 2px; }}
+
+    .winner-box {{
+        background: white;
+        border: 3px dashed var(--primary-color);
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+    }}
+    .winner-name {{
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 5px;
     }}
 </style>
-"""
-st.markdown(css_code, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # --- App Header ---
 st.markdown(f"""
@@ -386,8 +401,6 @@ def main():
                     with p_cols[i % 3]:
                         is_checked = st.session_state.checkbox_values.get(post['id'], False)
                         selected_class = "selected" if is_checked else ""
-                        
-                        # Avatar Initial
                         avatar_init = BRANDING_NAME[0].upper() if BRANDING_NAME else 'U'
                         
                         st.markdown(f"""
@@ -404,7 +417,7 @@ def main():
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # Use a space as labels to keep it invisible
+                        # The Ghost Checkbox
                         val = st.checkbox(" ", value=is_checked, key=f"sel_{post['id']}")
                         if val != is_checked:
                             st.session_state.checkbox_values[post['id']] = val
