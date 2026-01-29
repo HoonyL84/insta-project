@@ -81,37 +81,88 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    /* Instagram Style Post Card with selection status */
+    /* --- CLICKABLE CARD HACK --- */
+    /* Hide the checkbox UI but keep it clickable over the card */
+    [data-testid="stCheckbox"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100;
+        cursor: pointer;
+    }
+    
+    [data-testid="stCheckbox"] > label {
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        cursor: pointer !important;
+    }
+
+    /* Hide the tickbox and the text label */
+    [data-testid="stCheckbox"] [data-testid="stWidgetLabel"] {
+        display: none !important;
+    }
+    
+    /* Make the actual checkbox invisible but covering */
+    [data-testid="stCheckbox"] [role="checkbox"] {
+        opacity: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* Target the container to position absolute */
+    .element-container:has([data-testid="stCheckbox"]) {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+    }
+
+    /* Post Card Styling */
+    .post-wrapper {
+        position: relative;
+        margin-bottom: 20px;
+        transition: transform 0.2s;
+    }
+    .post-wrapper:hover {
+        transform: translateY(-5px);
+    }
+
     .insta-post {
         background: white;
         border: 2px solid #EFEFEF;
         border-radius: 12px;
-        margin-bottom: 15px;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: all 0.3s;
         position: relative;
     }
     
-    .insta-post.selected {
+    .selected .insta-post {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.3);
-        transform: scale(1.02);
     }
 
     .insta-header {
         display: flex;
         align-items: center;
-        padding: 10px;
+        padding: 8px 10px;
         border-bottom: 1px solid #FAFAFA;
     }
     .insta-avatar {
-        width: 28px;
-        height: 28px;
+        width: 24px;
+        height: 24px;
         border-radius: 50%;
         background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
         margin-right: 8px;
-        padding: 2px;
+        padding: 1.5px;
     }
     .insta-avatar-inner {
         width: 100%;
@@ -121,13 +172,13 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: bold;
         color: #FFB7C5;
     }
     .insta-username {
         font-weight: 600;
-        font-size: 13px;
+        font-size: 12px;
         color: #262626;
     }
 
@@ -150,15 +201,15 @@ st.markdown("""
         right: 8px;
         background: var(--primary-color);
         color: white;
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         display: none;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 12px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        z-index: 10;
+        z-index: 5;
     }
     .selected .selection-overlay {
         display: flex;
@@ -182,15 +233,6 @@ st.markdown("""
         font-size: 1.8rem;
         font-weight: 700;
         color: var(--primary-color);
-    }
-
-    /* Comment Preview List */
-    .preview-item {
-        background: #FFF9FA;
-        border-radius: 12px;
-        padding: 10px 15px;
-        margin-bottom: 8px;
-        border-left: 5px solid var(--primary-color);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -284,8 +326,8 @@ def init_state():
     if 'selected_posts' not in st.session_state: st.session_state.selected_posts = []
     if 'all_comments' not in st.session_state: st.session_state.all_comments = []
     if 'winners' not in st.session_state: st.session_state.winners = []
-    # State to track post selection for visual feedback
-    if 'temp_selected_ids' not in st.session_state: st.session_state.temp_selected_ids = set()
+    # Persistent state for post selection using checkbox values
+    if 'checkbox_state' not in st.session_state: st.session_state.checkbox_state = {}
 
 # --- Main Logic ---
 def main():
@@ -315,54 +357,63 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
                 
-            st.markdown(f'<div class="cute-card"><h3 style="margin-bottom:5px;">2. 게시물을 터치해서 골라주세요 ✨</h3><p style="font-size:0.9rem; text-align:center; color:#888;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="cute-card"><h3 style="margin-bottom:5px;">2. 게시물을 터치해서 선택하세요 ✨</h3><p style="font-size:0.9rem; text-align:center; color:#888;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
             posts = get_posts(st.session_state.selected_account['id'], ENV_TOKEN, mock=mock_mode)
             
             if not posts:
                 st.info("게시물이 없습니다.")
                 if st.button("← 뒤로 가기"): st.session_state.step = 1; st.rerun()
             else:
-                # Local selection state management to avoid instant reruns if needed
                 p_cols = st.columns(3)
+                selected_ids = []
+                
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        is_selected = post['id'] in st.session_state.temp_selected_ids
-                        selected_class = "selected" if is_selected else ""
+                        # Track selection via session state controlled by the hidden checkbox
+                        checked = st.session_state.checkbox_state.get(post['id'], False)
+                        selected_class = "selected" if checked else ""
                         
-                        # Render the card with visual state
+                        # Use a unique wrapper to apply position relative
                         st.markdown(f"""
-                        <div class="insta-post {selected_class}">
-                            <div class="insta-header">
-                                <div class="insta-avatar"><div class="insta-avatar-inner">U</div></div>
-                                <div class="insta-username">{st.session_state.selected_account['username']}</div>
+                        <div class="post-wrapper {selected_class}">
+                            <div class="insta-post">
+                                <div class="insta-header">
+                                    <div class="insta-avatar"><div class="insta-avatar-inner">U</div></div>
+                                    <div class="insta-username">{st.session_state.selected_account['username']}</div>
+                                </div>
+                                <div class="insta-img-wrapper">
+                                    <img src="{post['media_url']}">
+                                    <div class="selection-overlay">✔</div>
+                                </div>
                             </div>
-                            <div class="insta-img-wrapper">
-                                <img src="{post['media_url']}">
-                                <div class="selection-overlay">✔</div>
-                            </div>
-                        </div>
                         """, unsafe_allow_html=True)
                         
-                        # Transparent label button to toggle selection
-                        label = "✅ 선택됨" if is_selected else "➕ 선택하기"
-                        if st.button(label, key=f"btn_{post['id']}", use_container_width=True):
-                            if is_selected:
-                                st.session_state.temp_selected_ids.remove(post['id'])
-                            else:
-                                st.session_state.temp_selected_ids.add(post['id'])
+                        # --- THE HIDDEN INTERACTION LAYER ---
+                        # This checkbox will be made absolute and cover the entire wrapper via global CSS
+                        new_val = st.checkbox("", value=checked, key=post['id'])
+                        if new_val != checked:
+                            st.session_state.checkbox_state[post['id']] = new_val
                             st.rerun()
+                            
+                        st.markdown("</div>", unsafe_allow_html=True)
+                        
+                        if new_val:
+                            selected_ids.append(post['id'])
                 
                 st.write("")
-                count = len(st.session_state.temp_selected_ids)
+                count = len(selected_ids)
                 if st.button(f"다음 단계로 ({count}개 선택됨) 🌸"):
                     if count == 0: st.error("게시물을 최소 하나는 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
-                            st.session_state.selected_posts = list(st.session_state.temp_selected_ids)
-                            st.session_state.all_comments = fetch_all_comments(st.session_state.selected_posts, ENV_TOKEN, mock=mock_mode)
+                            st.session_state.selected_posts = selected_ids
+                            st.session_state.all_comments = fetch_all_comments(selected_ids, ENV_TOKEN, mock=mock_mode)
                             st.session_state.step = 3
                             st.rerun()
-                if st.button("계정 다시 선택", type="secondary"): st.session_state.step = 1; st.rerun()
+                if st.button("계정 다시 선택", type="secondary"): 
+                    st.session_state.checkbox_state = {} # Reset
+                    st.session_state.step = 1
+                    st.rerun()
 
         # Step 3: Draw Settings & Preview
         elif st.session_state.step == 3:
@@ -438,8 +489,7 @@ def main():
                 </div>
                 ''', unsafe_allow_html=True)
             if st.button("처음으로 ✨"):
-                # Clear selection state as well when restarting
-                st.session_state.temp_selected_ids = set()
+                st.session_state.checkbox_state = {}
                 st.session_state.step = 1
                 st.rerun()
 
