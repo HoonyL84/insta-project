@@ -12,7 +12,7 @@ ENV_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="InstaDraw - Cute Comment Picker",
+    page_title="U&JU(유앤쥬) - InstaDraw",
     page_icon="🌸",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -81,7 +81,6 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    /* Post Card Logic - Simplified for Streamlit integration */
     .post-container {
         background: white;
         border: 3px solid #FEE;
@@ -100,7 +99,7 @@ st.markdown("""
         border-radius: 12px;
         overflow: hidden;
         margin-bottom: 10px;
-        height: 150px; /* Fixed height for consistency */
+        height: 150px;
     }
     .post-img-wrapper img {
         object-fit: cover !important;
@@ -174,8 +173,8 @@ st.markdown("""
 # --- App Header ---
 st.markdown("""
 <div class="header">
-    <div class="header-title">🌸 InstaDraw</div>
-    <div class="header-subtitle">Simple & Sweet Comment Picker</div>
+    <div class="header-title">🌸 U&JU (유앤쥬)</div>
+    <div class="header-subtitle">Simple & Sweet InstaDraw</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -275,6 +274,7 @@ def main():
             accounts = get_instagram_accounts(ENV_TOKEN, mock=mock_mode)
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
+                if not ENV_TOKEN: st.info("데모 모드로 동작 중입니다.")
             else:
                 account_options = {f"{acc['name']} (@{acc['username']})": acc for acc in accounts}
                 selected_name = st.selectbox("추첨할 계정", options=list(account_options.keys()))
@@ -300,7 +300,6 @@ def main():
                 p_cols = st.columns(3)
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        # --- COHESIVE CARD ---
                         with st.container():
                             st.markdown('<div class="post-container">', unsafe_allow_html=True)
                             st.markdown(f'<div class="post-img-wrapper"><img src="{post["media_url"]}"></div>', unsafe_allow_html=True)
@@ -396,7 +395,7 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
 
-    st.markdown('<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 InstaDraw by Hoony 🌸</div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 U&JU (유앤쥬) with Hoony 🌸</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
