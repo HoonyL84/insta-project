@@ -25,7 +25,7 @@ st.markdown("""
 
     :root {
         --primary-color: #FFB7C5;
-        --accent-color: #77DD77;
+        --accent-hover: #FFA7B5;
         --bg-color: #FFF9F9;
         --card-bg: #FFFFFF;
         --text-color: #5D5D5D;
@@ -78,22 +78,23 @@ st.markdown("""
 
     .stButton>button:hover {
         transform: scale(1.05);
-        background-color: #FFA7B5;
+        background-color: var(--accent-hover);
     }
 
-    /* --- CLICKABLE CARD HACK --- */
-    /* Hide the checkbox UI but keep it clickable over the card */
-    [data-testid="stCheckbox"] {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 100;
-        cursor: pointer;
+    /* --- THE GHOST CHECKBOX HACK (Aggressive Version) --- */
+    /* This makes the Streamlit checkbox 100% invisible but covering the whole card area */
+    div[data-testid="stCheckbox"] {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 100 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
-    [data-testid="stCheckbox"] > label {
+    div[data-testid="stCheckbox"] label {
         width: 100% !important;
         height: 100% !important;
         padding: 0 !important;
@@ -101,35 +102,32 @@ st.markdown("""
         cursor: pointer !important;
     }
 
-    /* Hide the tickbox and the text label */
-    [data-testid="stCheckbox"] [data-testid="stWidgetLabel"] {
+    /* Hide the internal Streamlit checkbox components completely */
+    div[data-testid="stCheckbox"] [data-testid="stWidgetLabel"],
+    div[data-testid="stCheckbox"] div[role="checkbox"],
+    div[data-testid="stCheckbox"] div.st-ae,
+    div[data-testid="stCheckbox"] svg {
         display: none !important;
-    }
-    
-    /* Make the actual checkbox invisible but covering */
-    [data-testid="stCheckbox"] [role="checkbox"] {
         opacity: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
+        visibility: hidden !important;
     }
 
-    /* Target the container to position absolute */
-    .element-container:has([data-testid="stCheckbox"]) {
+    /* Make the outer container for the checkbox take full space */
+    .element-container:has(div[data-testid="stCheckbox"]) {
         position: absolute !important;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 2;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 10 !important;
     }
 
     /* Post Card Styling */
     .post-wrapper {
         position: relative;
-        margin-bottom: 20px;
-        transition: transform 0.2s;
+        margin-bottom: 25px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
     }
     .post-wrapper:hover {
         transform: translateY(-5px);
@@ -141,10 +139,11 @@ st.markdown("""
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: all 0.3s;
+        transition: all 0.3s ease;
         position: relative;
     }
     
+    /* Selection State Styling */
     .selected .insta-post {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.3);
@@ -194,28 +193,42 @@ st.markdown("""
         object-fit: cover !important;
     }
 
-    /* Selection Overlay Checkmark */
+    /* Custom Selection Overlay (Beautiful Checkmark) */
     .selection-overlay {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 10px;
+        right: 10px;
         background: var(--primary-color);
         color: white;
-        width: 22px;
-        height: 22px;
+        width: 26px;
+        height: 26px;
         border-radius: 50%;
         display: none;
         align-items: center;
         justify-content: center;
-        font-size: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         z-index: 5;
+        border: 2px solid white;
     }
     .selected .selection-overlay {
         display: flex;
     }
 
-    /* Target Counts */
+    /* Selection Indicator Counter */
+    .selection-badge {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        z-index: 5;
+    }
+
+    /* Target Counts Display */
     .count-container {
         display: flex;
         gap: 15px;
@@ -326,8 +339,8 @@ def init_state():
     if 'selected_posts' not in st.session_state: st.session_state.selected_posts = []
     if 'all_comments' not in st.session_state: st.session_state.all_comments = []
     if 'winners' not in st.session_state: st.session_state.winners = []
-    # Persistent state for post selection using checkbox values
-    if 'checkbox_state' not in st.session_state: st.session_state.checkbox_state = {}
+    # Persistent checkbox tracking
+    if 'checkbox_values' not in st.session_state: st.session_state.checkbox_values = {}
 
 # --- Main Logic ---
 def main():
@@ -369,11 +382,11 @@ def main():
                 
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        # Track selection via session state controlled by the hidden checkbox
-                        checked = st.session_state.checkbox_state.get(post['id'], False)
-                        selected_class = "selected" if checked else ""
+                        # Get current state
+                        is_checked = st.session_state.checkbox_values.get(post['id'], False)
+                        selected_class = "selected" if is_checked else ""
                         
-                        # Use a unique wrapper to apply position relative
+                        # Render the Card wrapper
                         st.markdown(f"""
                         <div class="post-wrapper {selected_class}">
                             <div class="insta-post">
@@ -388,16 +401,16 @@ def main():
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # --- THE HIDDEN INTERACTION LAYER ---
-                        # This checkbox will be made absolute and cover the entire wrapper via global CSS
-                        new_val = st.checkbox("", value=checked, key=post['id'])
-                        if new_val != checked:
-                            st.session_state.checkbox_state[post['id']] = new_val
+                        # --- THE TRUE GHOST CHECKBOX ---
+                        # This occupies the entire .post-wrapper area via absolute positioning in CSS
+                        val = st.checkbox(" ", value=is_checked, key=f"sel_{post['id']}")
+                        if val != is_checked:
+                            st.session_state.checkbox_values[post['id']] = val
                             st.rerun()
-                            
+                        
                         st.markdown("</div>", unsafe_allow_html=True)
                         
-                        if new_val:
+                        if val:
                             selected_ids.append(post['id'])
                 
                 st.write("")
@@ -411,7 +424,7 @@ def main():
                             st.session_state.step = 3
                             st.rerun()
                 if st.button("계정 다시 선택", type="secondary"): 
-                    st.session_state.checkbox_state = {} # Reset
+                    st.session_state.checkbox_values = {}
                     st.session_state.step = 1
                     st.rerun()
 
@@ -489,7 +502,7 @@ def main():
                 </div>
                 ''', unsafe_allow_html=True)
             if st.button("처음으로 ✨"):
-                st.session_state.checkbox_state = {}
+                st.session_state.checkbox_values = {}
                 st.session_state.step = 1
                 st.rerun()
 
