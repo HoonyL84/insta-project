@@ -9,61 +9,63 @@ from dotenv import load_dotenv
 # --- Load Environment Variables ---
 load_dotenv()
 ENV_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+# Branding name from .env, fallback to "유앤쥬"
+BRANDING_NAME = os.getenv("APP_BRANDING_NAME", "유앤쥬")
 
 # --- Page Config ---
 st.set_page_config(
-    page_title="유앤쥬 - 인스타 추첨기",
+    page_title=f"{BRANDING_NAME} - 인스타 추첨기",
     page_icon="🌸",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
 # --- Cute & Simple Custom CSS ---
-st.markdown("""
+st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
 
-    :root {
+    :root {{
         --primary-color: #FFB7C5;
         --accent-hover: #FFA7B5;
         --bg-color: #FFF9F9;
         --card-bg: #FFFFFF;
         --text-color: #5D5D5D;
-    }
+    }}
 
-    .stApp {
+    .stApp {{
         background-color: var(--bg-color);
         color: var(--text-color);
         font-family: 'Fredoka', sans-serif;
-    }
+    }}
 
-    .header {
+    .header {{
         text-align: center;
         padding: 1.5rem 0;
-    }
+    }}
 
-    .header-title {
+    .header-title {{
         font-size: 2.5rem;
         color: var(--primary-color);
         font-weight: 700;
         margin-bottom: 0px;
-    }
+    }}
 
-    .header-subtitle {
+    .header-subtitle {{
         color: #A0A0A0;
         font-size: 1rem;
-    }
+    }}
 
-    .cute-card {
+    .cute-card {{
         background: var(--card-bg);
         border: 4px solid #FEE;
         border-radius: 30px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         box-shadow: 0 10px 20px rgba(255, 183, 197, 0.1);
-    }
+    }}
 
-    .stButton>button {
+    .stButton>button {{
         background-color: var(--primary-color);
         color: white !important;
         border: none !important;
@@ -74,66 +76,73 @@ st.markdown("""
         transition: transform 0.2s;
         box-shadow: 0 5px 15px rgba(255, 183, 197, 0.4);
         width: 100%;
-    }
+    }}
 
-    .stButton>button:hover {
+    .stButton>button:hover {{
         transform: scale(1.05);
         background-color: var(--accent-hover);
-    }
+    }}
 
-    /* --- THE GHOST CHECKBOX HACK (Aggressive Version) --- */
-    /* This makes the Streamlit checkbox 100% invisible but covering the whole card area */
-    div[data-testid="stCheckbox"] {
-        position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        z-index: 100 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    div[data-testid="stCheckbox"] label {
-        width: 100% !important;
-        height: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        cursor: pointer !important;
-    }
-
-    /* Hide the internal Streamlit checkbox components completely */
-    div[data-testid="stCheckbox"] [data-testid="stWidgetLabel"],
-    div[data-testid="stCheckbox"] div[role="checkbox"],
-    div[data-testid="stCheckbox"] div.st-ae,
-    div[data-testid="stCheckbox"] svg {
-        display: none !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-    }
-
-    /* Make the outer container for the checkbox take full space */
-    .element-container:has(div[data-testid="stCheckbox"]) {
+    /* --- GHOST INTERACTION LAYER (ULTRA AGGRESSIVE) --- */
+    /* Kill any visible part of the native Streamlit checkbox */
+    .post-wrapper .element-container:has(div[data-testid="stCheckbox"]) {{
         position: absolute !important;
         top: 0 !important;
         left: 0 !important;
         width: 100% !important;
         height: 100% !important;
         z-index: 10 !important;
-    }
+        padding: 0 !important;
+        margin: 0 !important;
+    }}
+
+    .post-wrapper div[data-testid="stCheckbox"] {{
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }}
+
+    /* This is the key: Hide all children of the checkbox widget but keep the widget clickable */
+    .post-wrapper div[data-testid="stCheckbox"] * {{
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }}
+
+    /* Re-enable pointer events for the root label so it captures the click */
+    .post-wrapper div[data-testid="stCheckbox"] label {{
+        display: block !important;
+        opacity: 0 !important;
+        visibility: visible !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        z-index: 100 !important;
+    }}
 
     /* Post Card Styling */
-    .post-wrapper {
+    .post-wrapper {{
         position: relative;
         margin-bottom: 25px;
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         cursor: pointer;
-    }
-    .post-wrapper:hover {
+    }}
+    .post-wrapper:hover {{
         transform: translateY(-5px);
-    }
+    }}
 
-    .insta-post {
+    .insta-post {{
         background: white;
         border: 2px solid #EFEFEF;
         border-radius: 12px;
@@ -141,29 +150,29 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         transition: all 0.3s ease;
         position: relative;
-    }
+        z-index: 1;
+    }}
     
-    /* Selection State Styling */
-    .selected .insta-post {
+    .selected .insta-post {{
         border-color: var(--primary-color);
         box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.3);
-    }
+    }}
 
-    .insta-header {
+    .insta-header {{
         display: flex;
         align-items: center;
         padding: 8px 10px;
         border-bottom: 1px solid #FAFAFA;
-    }
-    .insta-avatar {
+    }}
+    .insta-avatar {{
         width: 24px;
         height: 24px;
         border-radius: 50%;
         background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
         margin-right: 8px;
         padding: 1.5px;
-    }
-    .insta-avatar-inner {
+    }}
+    .insta-avatar-inner {{
         width: 100%;
         height: 100%;
         background: white;
@@ -174,27 +183,27 @@ st.markdown("""
         font-size: 10px;
         font-weight: bold;
         color: #FFB7C5;
-    }
-    .insta-username {
+    }}
+    .insta-username {{
         font-weight: 600;
         font-size: 12px;
         color: #262626;
-    }
+    }}
 
-    .insta-img-wrapper {
+    .insta-img-wrapper {{
         aspect-ratio: 1/1;
         overflow: hidden;
         background: #FAFAFA;
         position: relative;
-    }
-    .insta-img-wrapper img {
+    }}
+    .insta-img-wrapper img {{
         width: 100% !important;
         height: 100% !important;
         object-fit: cover !important;
-    }
+    }}
 
     /* Custom Selection Overlay (Beautiful Checkmark) */
-    .selection-overlay {
+    .selection-overlay {{
         position: absolute;
         top: 10px;
         right: 10px;
@@ -210,78 +219,73 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         z-index: 5;
         border: 2px solid white;
-    }
-    .selected .selection-overlay {
+    }}
+    .selected .selection-overlay {{
         display: flex;
-    }
-
-    /* Selection Indicator Counter */
-    .selection-badge {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.6);
-        color: white;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 10px;
-        z-index: 5;
-    }
+    }}
 
     /* Target Counts Display */
-    .count-container {
+    .count-container {{
         display: flex;
         gap: 15px;
         margin-bottom: 20px;
-    }
-    .count-box {
+    }}
+    .count-box {{
         flex: 1;
         text-align: center;
         background: #FFF;
         border: 2px solid #FEE;
         border-radius: 15px;
         padding: 15px;
-    }
-    .count-val {
+    }}
+    .count-val {{
         font-size: 1.8rem;
         font-weight: 700;
         color: var(--primary-color);
-    }
+    }}
+
+    .preview-item {{
+        background: #FFF9FA;
+        border-radius: 12px;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        border-left: 5px solid var(--primary-color);
+    }}
 </style>
 """, unsafe_allow_html=True)
 
 # --- App Header ---
-st.markdown("""
+st.markdown(f"""
 <div class="header">
-    <div class="header-title">🌸 유앤쥬</div>
+    <div class="header-title">🌸 {{BRANDING_NAME}}</div>
     <div class="header-subtitle">인스타 추첨 이벤트</div>
 </div>
 """, unsafe_allow_html=True)
 
 # --- Mock Data ---
 MOCK_ACCOUNTS = [
-    {"name": "Lifestyle Blog", "id": "ig1", "username": "lifestyle_hoony"},
-    {"name": "Tech Reviews", "id": "ig2", "username": "tech_hoony"},
+    {{"name": "Lifestyle Blog", "id": "ig1", "username": "lifestyle_hoony"}},
+    {{"name": "Tech Reviews", "id": "ig2", "username": "tech_hoony"}},
 ]
 
-MOCK_POSTS = {
+MOCK_POSTS = {{
     "ig1": [
-        {"id": "p1", "media_url": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500", "caption": "Cute Event Post! ✨", "timestamp": "2024-01-20"},
-        {"id": "p2", "media_url": "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=500", "caption": "Sunday Vibes 🌸", "timestamp": "2024-01-21"},
-        {"id": "p4", "media_url": "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=500", "caption": "Coffee Time ☕", "timestamp": "2024-01-22"},
+        {{"id": "p1", "media_url": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500", "caption": "Cute Event Post! ✨", "timestamp": "2024-01-20"}},
+        {{"id": "p2", "media_url": "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=500", "caption": "Sunday Vibes 🌸", "timestamp": "2024-01-21"}},
+        {{"id": "p4", "media_url": "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=500", "caption": "Coffee Time ☕", "timestamp": "2024-01-22"}},
     ],
     "ig2": [
-        {"id": "p3", "media_url": "https://images.unsplash.com/photo-1611162618071-b39a2ad055fb?w=500", "caption": "Gadget Giveaway! 📱", "timestamp": "2024-01-22"},
+        {{"id": "p3", "media_url": "https://images.unsplash.com/photo-1611162618071-b39a2ad055fb?w=500", "caption": "Gadget Giveaway! 📱", "timestamp": "2024-01-22"}},
     ]
-}
+}}
 
 MOCK_COMMENTS_POOL = [
-    {"username": "strawberry_milk", "text": "참여합니다! #이벤트"},
-    {"username": "blue_ocean", "text": "저요저요!!"},
-    {"username": "lucky_cat", "text": "#이벤트 완료 ✨"},
-    {"username": "happy_hoony", "text": "당첨 기원 🌸"},
-    {"username": "sunny_day", "text": "참여 완료! #이벤트"},
-    {"username": "mountain_lover", "text": "응모합니다 하하"},
+    {{"username": "strawberry_milk", "text": "참여합니다! #이벤트"}},
+    {{"username": "blue_ocean", "text": "저요저요!!"}},
+    {{"username": "lucky_cat", "text": "#이벤트 완료 ✨"}},
+    {{"username": "happy_hoony", "text": "당첨 기원 🌸"}},
+    {{"username": "sunny_day", "text": "참여 완료! #이벤트"}},
+    {{"username": "mountain_lover", "text": "응모합니다 하하"}},
 ]
 
 # --- Functions ---
@@ -289,28 +293,28 @@ def get_instagram_accounts(token, mock=False):
     if mock: return MOCK_ACCOUNTS
     if not token: return []
     try:
-        url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={token}"
+        url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={{token}}"
         res = requests.get(url).json()
         pages = res.get('data', [])
         accounts = []
         for page in pages:
-            url_ig = f"https://graph.facebook.com/v19.0/{page['id']}?fields=instagram_business_account&access_token={token}"
+            url_ig = f"https://graph.facebook.com/v19.0/{{page['id']}}?fields=instagram_business_account&access_token={{token}}"
             res_ig = requests.get(url_ig).json()
             ig_acc = res_ig.get('instagram_business_account')
             if ig_acc:
-                url_detail = f"https://graph.facebook.com/v19.0/{ig_acc['id']}?fields=username,name&access_token={token}"
+                url_detail = f"https://graph.facebook.com/v19.0/{{ig_acc['id']}}?fields=username,name&access_token={{token}}"
                 res_detail = requests.get(url_detail).json()
-                accounts.append({
+                accounts.append({{
                     "name": res_detail.get('name', page['name']),
                     "username": res_detail.get('username'),
                     "id": ig_acc['id']
-                })
+                }})
         return accounts
     except: return []
 
 def get_posts(account_id, token, mock=False):
     if mock: return MOCK_POSTS.get(account_id, [])
-    url = f"https://graph.facebook.com/v19.0/{account_id}/media?fields=id,caption,media_url,timestamp&access_token={token}"
+    url = f"https://graph.facebook.com/v19.0/{{account_id}}/media?fields=id,caption,media_url,timestamp&access_token={{token}}"
     try:
         res = requests.get(url).json()
         return res.get('data', [])
@@ -325,7 +329,7 @@ def fetch_all_comments(post_ids, token, mock=False):
         return comments
     
     for pid in post_ids:
-        url = f"https://graph.facebook.com/v19.0/{pid}/comments?fields=id,username,text&access_token={token}"
+        url = f"https://graph.facebook.com/v19.0/{{pid}}/comments?fields=id,username,text&access_token={{token}}"
         try:
             res = requests.get(url).json()
             comments.extend(res.get('data', []))
@@ -339,8 +343,7 @@ def init_state():
     if 'selected_posts' not in st.session_state: st.session_state.selected_posts = []
     if 'all_comments' not in st.session_state: st.session_state.all_comments = []
     if 'winners' not in st.session_state: st.session_state.winners = []
-    # Persistent checkbox tracking
-    if 'checkbox_values' not in st.session_state: st.session_state.checkbox_values = {}
+    if 'checkbox_values' not in st.session_state: st.session_state.checkbox_values = {{}}
 
 # --- Main Logic ---
 def main():
@@ -357,7 +360,7 @@ def main():
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
             else:
-                account_options = {f"{acc['name']} (@{acc['username']})": acc for acc in accounts}
+                account_options = {{f"{{acc['name']}} (@{{acc['username']}})": acc for acc in accounts}}
                 selected_name = st.selectbox("추첨할 계정", options=list(account_options.keys()))
                 st.session_state.selected_account = account_options[selected_name]
                 if st.button("내 게시물 불러오기 ✨"):
@@ -370,7 +373,7 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
                 
-            st.markdown(f'<div class="cute-card"><h3 style="margin-bottom:5px;">2. 게시물을 터치해서 선택하세요 ✨</h3><p style="font-size:0.9rem; text-align:center; color:#888;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="cute-card"><h3 style="margin-bottom:5px;">2. 게시물을 터치해서 선택하세요 ✨</h3><p style="font-size:0.9rem; text-align:center; color:#888;">@{{st.session_state.selected_account["username"]}} 계정</p></div>', unsafe_allow_html=True)
             posts = get_posts(st.session_state.selected_account['id'], ENV_TOKEN, mock=mock_mode)
             
             if not posts:
@@ -382,28 +385,25 @@ def main():
                 
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        # Get current state
                         is_checked = st.session_state.checkbox_values.get(post['id'], False)
                         selected_class = "selected" if is_checked else ""
                         
-                        # Render the Card wrapper
                         st.markdown(f"""
-                        <div class="post-wrapper {selected_class}">
+                        <div class="post-wrapper {{selected_class}}">
                             <div class="insta-post">
                                 <div class="insta-header">
-                                    <div class="insta-avatar"><div class="insta-avatar-inner">U</div></div>
-                                    <div class="insta-username">{st.session_state.selected_account['username']}</div>
+                                    <div class="insta-avatar"><div class="insta-avatar-inner">{{BRANDING_NAME[0].upper() if BRANDING_NAME else 'U'}}</div></div>
+                                    <div class="insta-username">{{st.session_state.selected_account['username']}}</div>
                                 </div>
                                 <div class="insta-img-wrapper">
-                                    <img src="{post['media_url']}">
+                                    <img src="{{post['media_url']}}">
                                     <div class="selection-overlay">✔</div>
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # --- THE TRUE GHOST CHECKBOX ---
-                        # This occupies the entire .post-wrapper area via absolute positioning in CSS
-                        val = st.checkbox(" ", value=is_checked, key=f"sel_{post['id']}")
+                        # --- THE TRUE GHOST CHECKBOX (STILL THERE BUT 100% INVISIBLE) ---
+                        val = st.checkbox(" ", value=is_checked, key=f"sel_{{post['id']}}")
                         if val != is_checked:
                             st.session_state.checkbox_values[post['id']] = val
                             st.rerun()
@@ -415,7 +415,7 @@ def main():
                 
                 st.write("")
                 count = len(selected_ids)
-                if st.button(f"다음 단계로 ({count}개 선택됨) 🌸"):
+                if st.button(f"다음 단계로 ({{count}}개 선택됨) 🌸"):
                     if count == 0: st.error("게시물을 최소 하나는 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
@@ -424,7 +424,7 @@ def main():
                             st.session_state.step = 3
                             st.rerun()
                 if st.button("계정 다시 선택", type="secondary"): 
-                    st.session_state.checkbox_values = {}
+                    st.session_state.checkbox_values = {{}}
                     st.session_state.step = 1
                     st.rerun()
 
@@ -455,22 +455,22 @@ def main():
             <div class="count-container">
                 <div class="count-box">
                     <div class="count-label">전체 댓글</div>
-                    <div class="count-val">{len(all_comments)}</div>
+                    <div class="count-val">{{len(all_comments)}}</div>
                 </div>
                 <div class="count-box" style="border-color: var(--primary-color);">
                     <div class="count-label">추첨 대상</div>
-                    <div class="count-val">{target_count}</div>
+                    <div class="count-val">{{target_count}}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
             if target_count > 0:
-                with st.expander(f"📖 추첨 대상 명단 보기 ({target_count}명)", expanded=False):
+                with st.expander(f"📖 추첨 대상 명단 보기 ({{target_count}}명)", expanded=False):
                     for idx, row in df_temp.iterrows():
                         st.markdown(f"""
                         <div class="preview-item">
-                            <div class="preview-user">@{row['username']}</div>
-                            <div class="preview-text">"{row['text']}"</div>
+                            <div class="preview-user">@{{row['username']}}</div>
+                            <div class="preview-text">"{{row['text']}}"</div>
                         </div>
                         """, unsafe_allow_html=True)
             
@@ -497,16 +497,16 @@ def main():
             for w in st.session_state.winners:
                 st.markdown(f'''
                 <div class="winner-box">
-                    <div class="winner-name">@{w['username']}</div>
-                    <div style="color: #555; font-style: italic;">"{w['text']}"</div>
+                    <div class="winner-name">@{{w['username']}}</div>
+                    <div style="color: #555; font-style: italic;">"{{w['text']}}"</div>
                 </div>
                 ''', unsafe_allow_html=True)
             if st.button("처음으로 ✨"):
-                st.session_state.checkbox_values = {}
+                st.session_state.checkbox_values = {{}}
                 st.session_state.step = 1
                 st.rerun()
 
-    st.markdown('<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 유앤쥬 with Hoony 🌸</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center; padding: 2rem; color: #DDD;">🌸 {{BRANDING_NAME}} with Hoony 🌸</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
