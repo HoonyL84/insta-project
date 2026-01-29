@@ -81,22 +81,31 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    /* Smaller Post Thumbnails */
-    .post-item {
-        border-radius: 15px;
-        overflow: hidden;
+    /* Post Card Logic - Simplified for Streamlit integration */
+    .post-container {
+        background: white;
         border: 3px solid #FEE;
-        transition: border-color 0.3s;
-        aspect-ratio: 1/1;
-        margin-bottom: 10px;
+        border-radius: 20px;
+        padding: 10px;
+        margin-bottom: 20px;
+        transition: border-color 0.3s, transform 0.2s;
+        text-align: center;
     }
-    .post-item img {
+    .post-container:hover {
+        border-color: var(--primary-color);
+        transform: translateY(-5px);
+    }
+    
+    .post-img-wrapper {
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 10px;
+        height: 150px; /* Fixed height for consistency */
+    }
+    .post-img-wrapper img {
         object-fit: cover !important;
         width: 100% !important;
         height: 100% !important;
-    }
-    .post-item:hover {
-        border-color: var(--primary-color);
     }
 
     .count-container {
@@ -266,7 +275,6 @@ def main():
             accounts = get_instagram_accounts(ENV_TOKEN, mock=mock_mode)
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
-                if not ENV_TOKEN: st.info("토큰이 없어 데모 모드로 동작 중입니다.")
             else:
                 account_options = {f"{acc['name']} (@{acc['username']})": acc for acc in accounts}
                 selected_name = st.selectbox("추첨할 계정", options=list(account_options.keys()))
@@ -289,15 +297,16 @@ def main():
                 if st.button("← 뒤로 가기"): st.session_state.step = 1; st.rerun()
             else:
                 selected_ids = []
-                # --- Smaller 3-column Grid ---
                 p_cols = st.columns(3)
                 for i, post in enumerate(posts):
                     with p_cols[i % 3]:
-                        st.markdown('<div class="post-item">', unsafe_allow_html=True)
-                        st.image(post['media_url'], use_column_width=True)
-                        st.markdown('</div>', unsafe_allow_html=True)
-                        if st.checkbox(f"선택 {post['id'][-4:]}", key=post['id']):
-                            selected_ids.append(post['id'])
+                        # --- COHESIVE CARD ---
+                        with st.container():
+                            st.markdown('<div class="post-container">', unsafe_allow_html=True)
+                            st.markdown(f'<div class="post-img-wrapper"><img src="{post["media_url"]}"></div>', unsafe_allow_html=True)
+                            if st.checkbox(f"선택 {post['id'][-4:]}", key=post['id']):
+                                selected_ids.append(post['id'])
+                            st.markdown('</div>', unsafe_allow_html=True)
                 
                 st.write("")
                 if st.button(f"댓글 불러오기 ({len(selected_ids)}개 선택됨) 🌸"):
