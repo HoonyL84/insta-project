@@ -81,18 +81,6 @@ st.markdown("""
         background-color: #FFA7B5;
     }
 
-    /* Info Badge */
-    .info-badge {
-        background: #F0F9FF;
-        color: #0369A1;
-        padding: 5px 15px;
-        border-radius: 50px;
-        font-size: 0.85rem;
-        border: 1px solid #BAE6FD;
-        display: inline-block;
-        margin-bottom: 10px;
-    }
-
     .count-container {
         display: flex;
         gap: 15px;
@@ -117,6 +105,26 @@ st.markdown("""
     .count-label {
         font-size: 0.8rem;
         color: #888;
+    }
+
+    /* Comment Preview List */
+    .preview-item {
+        background: #FFF9FA;
+        border-radius: 12px;
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        border-left: 5px solid var(--primary-color);
+    }
+
+    .preview-user {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-size: 0.9rem;
+    }
+
+    .preview-text {
+        font-size: 0.85rem;
+        color: #666;
     }
 
     .post-item {
@@ -192,7 +200,7 @@ def get_instagram_accounts(token, mock=False):
         url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={token}"
         res = requests.get(url).json()
         pages = res.get('data', [])
-        accounts = []
+         accounts = []
         for page in pages:
             url_ig = f"https://graph.facebook.com/v19.0/{page['id']}?fields=instagram_business_account&access_token={token}"
             res_ig = requests.get(url_ig).json()
@@ -220,12 +228,12 @@ def fetch_all_comments(post_ids, token, mock=False):
     comments = []
     if mock:
         time.sleep(1)
-        # Just return a random subset of mock pool for each post so it looks realistic
         for _ in post_ids:
             comments.extend(random.sample(MOCK_COMMENTS_POOL, random.randint(3, 5)))
         return comments
     
     for pid in post_ids:
+        # Paging might be needed for many comments, but for simplicity:
         url = f"https://graph.facebook.com/v19.0/{pid}/comments?fields=id,username,text&access_token={token}"
         try:
             res = requests.get(url).json()
@@ -285,52 +293,61 @@ def main():
                             st.rerun()
                 if st.button("이전으로", type="secondary"): st.session_state.step = 1; st.rerun()
 
-        # Step 3: Draw Settings
+        # Step 3: Draw Settings & Preview
         elif st.session_state.step == 3:
             all_comments = st.session_state.all_comments
             st.markdown('<div class="cute-card"><h3>3. 추첨 대상을 확인해요 🍭</h3></div>', unsafe_allow_html=True)
             
-            # --- Draw Config Form (Realtime update for target count) ---
-            with st.container():
-                keyword = st.text_input("포함할 단어 (비워두면 전체 추첨)", placeholder="예: #이벤트")
-                remove_duplicates = st.toggle("중복 참여 제외 (1인 1응모)", value=True)
-                winners_count = st.number_input("추첨 인원", min_value=1, value=1)
-                
-                # --- Calculate Target Count ---
-                df_temp = pd.DataFrame(all_comments)
-                if not df_temp.empty:
-                    if keyword:
-                        df_temp = df_temp[df_temp['text'].str.contains(keyword, case=False, na=False)]
-                    if remove_duplicates:
-                        df_temp = df_temp.drop_duplicates(subset=['username'])
-                    
-                    target_count = len(df_temp)
-                else:
-                    target_count = 0
-                
-                # --- Visual Display of Counts ---
-                st.markdown(f"""
-                <div class="count-container">
-                    <div class="count-box">
-                        <div class="count-label">전체 댓글</div>
-                        <div class="count-val">{len(all_comments)}</div>
-                    </div>
-                    <div class="count-box" style="border-color: var(--primary-color);">
-                        <div class="count-label">추첨 대상 (필터 적용)</div>
-                        <div class="count-val">{target_count}</div>
-                    </div>
+            # --- Config ---
+            keyword = st.text_input("포함할 단어 (비워두면 전체)", placeholder="예: #이벤트")
+            remove_duplicates = st.toggle("중복 참여 제외 (1인 1응모)", value=True)
+            winners_count = st.number_input("추첨 인원", min_value=1, value=1)
+            
+            # --- Filter Logic ---
+            df_temp = pd.DataFrame(all_comments)
+            if not df_temp.empty:
+                if keyword:
+                    df_temp = df_temp[df_temp['text'].str.contains(keyword, case=False, na=False)]
+                if remove_duplicates:
+                    df_temp = df_temp.drop_duplicates(subset=['username'])
+                target_count = len(df_temp)
+            else:
+                target_count = 0
+            
+            # --- Visual Stats ---
+            st.markdown(f"""
+            <div class="count-container">
+                <div class="count-box">
+                    <div class="count-label">전체 댓글</div>
+                    <div class="count-val">{len(all_comments)}</div>
                 </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button("🎉 추첨 시작! 🎉"):
-                    if target_count == 0:
-                        st.error("추첨 대상이 없습니다. 필터 조건을 확인해 주세요!")
-                    else:
-                        # Perform Drawing
-                        winners = df_temp.sample(n=min(target_count, int(winners_count))).to_dict('records')
-                        st.session_state.winners = winners
-                        st.session_state.step = 4
-                        st.rerun()
+                <div class="count-box" style="border-color: var(--primary-color);">
+                    <div class="count-label">추첨 대상</div>
+                    <div class="count-val">{target_count}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # --- PREVIEW LIST ---
+            if target_count > 0:
+                with st.expander(f"📖 추첨 대상 명단 보기 ({target_count}명)", expanded=False):
+                    for idx, row in df_temp.iterrows():
+                        st.markdown(f"""
+                        <div class="preview-item">
+                            <div class="preview-user">@{row['username']}</div>
+                            <div class="preview-text">"{row['text']}"</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            
+            st.write("")
+            if st.button("🎉 추첨 시작! 🎉"):
+                if target_count == 0:
+                    st.error("추첨 대상이 없습니다.")
+                else:
+                    winners = df_temp.sample(n=min(target_count, int(winners_count))).to_dict('records')
+                    st.session_state.winners = winners
+                    st.session_state.step = 4
+                    st.rerun()
             
             if st.button("게시물 다시 고르기"): st.session_state.step = 2; st.rerun()
 
