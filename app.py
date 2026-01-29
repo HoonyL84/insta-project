@@ -180,7 +180,7 @@ st.markdown("""
 st.markdown("""
 <div class="header">
     <div class="header-title">🌸 유앤쥬</div>
-    <div class="header-subtitle">Simple & Sweet 인스타 추첨기</div>
+    <div class="header-subtitle">인스타 추첨 이벤트</div>
 </div>
 """, unsafe_allow_html=True)
 
