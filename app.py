@@ -39,11 +39,11 @@ st.markdown("""
 
     .header {
         text-align: center;
-        padding: 2rem 0;
+        padding: 1.5rem 0;
     }
 
     .header-title {
-        font-size: 3rem;
+        font-size: 2.5rem;
         color: var(--primary-color);
         font-weight: 700;
         margin-bottom: 0px;
@@ -51,15 +51,15 @@ st.markdown("""
 
     .header-subtitle {
         color: #A0A0A0;
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     .cute-card {
         background: var(--card-bg);
         border: 4px solid #FEE;
         border-radius: 30px;
-        padding: 2rem;
-        margin-bottom: 2rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 10px 20px rgba(255, 183, 197, 0.1);
     }
 
@@ -68,9 +68,9 @@ st.markdown("""
         color: white !important;
         border: none !important;
         border-radius: 50px;
-        padding: 0.8rem 2rem;
+        padding: 0.6rem 1.5rem;
         font-weight: 600 !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
         transition: transform 0.2s;
         box-shadow: 0 5px 15px rgba(255, 183, 197, 0.4);
         width: 100%;
@@ -79,6 +79,24 @@ st.markdown("""
     .stButton>button:hover {
         transform: scale(1.05);
         background-color: #FFA7B5;
+    }
+
+    /* Smaller Post Thumbnails */
+    .post-item {
+        border-radius: 15px;
+        overflow: hidden;
+        border: 3px solid #FEE;
+        transition: border-color 0.3s;
+        aspect-ratio: 1/1;
+        margin-bottom: 10px;
+    }
+    .post-item img {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+    .post-item:hover {
+        border-color: var(--primary-color);
     }
 
     .count-container {
@@ -126,16 +144,6 @@ st.markdown("""
         color: #666;
     }
 
-    .post-item {
-        border-radius: 20px;
-        overflow: hidden;
-        border: 4px solid #FEE;
-        transition: border-color 0.3s;
-    }
-    .post-item:hover {
-        border-color: var(--primary-color);
-    }
-
     .winner-box {
         background: #FFF0F3;
         border: 3px dashed var(--primary-color);
@@ -146,7 +154,7 @@ st.markdown("""
     }
     
     .winner-name {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         color: var(--primary-color);
         font-weight: 700;
         margin: 10px 0;
@@ -172,6 +180,7 @@ MOCK_POSTS = {
     "ig1": [
         {"id": "p1", "media_url": "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=500", "caption": "Cute Event Post! ✨", "timestamp": "2024-01-20"},
         {"id": "p2", "media_url": "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=500", "caption": "Sunday Vibes 🌸", "timestamp": "2024-01-21"},
+        {"id": "p4", "media_url": "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=500", "caption": "Coffee Time ☕", "timestamp": "2024-01-22"},
     ],
     "ig2": [
         {"id": "p3", "media_url": "https://images.unsplash.com/photo-1611162618071-b39a2ad055fb?w=500", "caption": "Gadget Giveaway! 📱", "timestamp": "2024-01-22"},
@@ -195,7 +204,7 @@ def get_instagram_accounts(token, mock=False):
         url = f"https://graph.facebook.com/v19.0/me/accounts?access_token={token}"
         res = requests.get(url).json()
         pages = res.get('data', [])
-        accounts = [] # Fixed indentation
+        accounts = []
         for page in pages:
             url_ig = f"https://graph.facebook.com/v19.0/{page['id']}?fields=instagram_business_account&access_token={token}"
             res_ig = requests.get(url_ig).json()
@@ -268,12 +277,11 @@ def main():
 
         # Step 2: Post Selection
         elif st.session_state.step == 2:
-            # SAFETY GUARD
             if not st.session_state.selected_account:
                 st.session_state.step = 1
                 st.rerun()
                 
-            st.markdown(f'<div class="cute-card"><h3>2. 게시물을 골라주세요 ✨</h3><p>@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="cute-card"><h3>2. 게시물을 골라주세요 ✨</h3><p style="font-size:0.9rem; text-align:center;">@{st.session_state.selected_account["username"]} 계정</p></div>', unsafe_allow_html=True)
             posts = get_posts(st.session_state.selected_account['id'], ENV_TOKEN, mock=mock_mode)
             
             if not posts:
@@ -281,15 +289,17 @@ def main():
                 if st.button("← 뒤로 가기"): st.session_state.step = 1; st.rerun()
             else:
                 selected_ids = []
-                p_cols = st.columns(2)
+                # --- Smaller 3-column Grid ---
+                p_cols = st.columns(3)
                 for i, post in enumerate(posts):
-                    with p_cols[i % 2]:
+                    with p_cols[i % 3]:
                         st.markdown('<div class="post-item">', unsafe_allow_html=True)
                         st.image(post['media_url'], use_column_width=True)
                         st.markdown('</div>', unsafe_allow_html=True)
-                        if st.checkbox(f"선택 ({post['id'][-4:]})", key=post['id']):
+                        if st.checkbox(f"선택 {post['id'][-4:]}", key=post['id']):
                             selected_ids.append(post['id'])
                 
+                st.write("")
                 if st.button(f"댓글 불러오기 ({len(selected_ids)}개 선택됨) 🌸"):
                     if not selected_ids: st.error("게시물을 선택해 주세요!")
                     else:
@@ -302,7 +312,6 @@ def main():
 
         # Step 3: Draw Settings & Preview
         elif st.session_state.step == 3:
-            # SAFETY GUARD
             if not st.session_state.all_comments and not mock_mode:
                 st.session_state.step = 2
                 st.rerun()
@@ -361,7 +370,6 @@ def main():
 
         # Step 4: Display Winners
         elif st.session_state.step == 4:
-            # SAFETY GUARD
             if not st.session_state.winners:
                 st.session_state.step = 3
                 st.rerun()
