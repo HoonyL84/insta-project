@@ -12,6 +12,11 @@ ENV_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 # Branding name from .env, fallback to "유앤쥬"
 BRANDING_NAME = os.getenv("APP_BRANDING_NAME", "유앤쥬")
 
+# Theme colors from .env, fallback to the original cute pink theme
+PRIMARY_COLOR = os.getenv("APP_PRIMARY_COLOR", "#FFB7C5")
+HOVER_COLOR = os.getenv("APP_HOVER_COLOR", "#FFA7B5")
+BG_COLOR = os.getenv("APP_BG_COLOR", "#FFF9F9")
+
 # --- Page Config ---
 st.set_page_config(
     page_title=f"{BRANDING_NAME} - 인스타 추첨기",
@@ -21,15 +26,15 @@ st.set_page_config(
 )
 
 # --- Cute & Simple Custom CSS ---
-# Using a single large f-string but carefully escaping CSS braces with double {{ and }}
-st.markdown(f"""
+# Use format() or f-string carefully. We use single braces f-string for python vars and double {{}} for CSS blocks.
+css_code = f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght=300;400;500;600;700&display=swap');
 
     :root {{
-        --primary-color: #FFB7C5;
-        --accent-hover: #FFA7B5;
-        --bg-color: #FFF9F9;
+        --primary-color: {PRIMARY_COLOR};
+        --accent-hover: {HOVER_COLOR};
+        --bg-color: {BG_COLOR};
         --card-bg: #FFFFFF;
         --text-color: #5D5D5D;
     }}
@@ -266,7 +271,8 @@ st.markdown(f"""
         margin-bottom: 5px;
     }}
 </style>
-""", unsafe_allow_html=True)
+"""
+st.markdown(css_code, unsafe_allow_html=True)
 
 # --- App Header ---
 st.markdown(f"""

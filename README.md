@@ -35,6 +35,12 @@ INSTAGRAM_ACCESS_TOKEN=본인의_페이스북_개발자_토큰_입력
 # 앱 브랜딩 이름 (선택 - 기본값: 유앤쥬)
 # 이 값을 변경하면 프로그램의 제목과 로고 이니셜 등이 한 번에 변경됩니다.
 APP_BRANDING_NAME=나만의_브랜드
+
+# UI 컬러 테마 커스텀 (선택 - 기본값: 유앤쥬 핑크톤)
+# 원하는 헥스코드(Hex Code)를 입력하여 앱 전체의 테마 색상을 변경할 수 있습니다.
+# APP_PRIMARY_COLOR=#FFB7C5
+# APP_HOVER_COLOR=#FFA7B5
+# APP_BG_COLOR=#FFF9F9
 ```
 
 ---
