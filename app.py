@@ -18,12 +18,19 @@ HOVER_COLOR = os.getenv("APP_HOVER_COLOR", "#FFA7B5")
 BG_COLOR = os.getenv("APP_BG_COLOR", "#FFF9F9")
 
 # Emoji branding from .env
-APP_EMOJI = os.getenv("APP_EMOJI", "🌸")
+_raw_emoji = os.getenv("APP_EMOJI", "🌸")
+# If user sets APP_EMOJI="" in .env, _raw_emoji will be an empty string
+APP_EMOJI = _raw_emoji
+
+# Helper string with trailing space if emoji exists
+EMOJI_SPACE = f"{APP_EMOJI} " if APP_EMOJI else ""
+# Helper string with leading space if emoji exists
+SPACE_EMOJI = f" {APP_EMOJI}" if APP_EMOJI else ""
 
 # --- Page Config ---
 st.set_page_config(
     page_title=f"{BRANDING_NAME} - 인스타 추첨기",
-    page_icon=APP_EMOJI,
+    page_icon=APP_EMOJI if APP_EMOJI else "🎁", # page_icon needs something
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -280,7 +287,7 @@ st.markdown(css_code, unsafe_allow_html=True)
 # --- App Header ---
 st.markdown(f"""
 <div class="header">
-    <div class="header-title">{APP_EMOJI} {BRANDING_NAME}</div>
+    <div class="header-title">{EMOJI_SPACE}{BRANDING_NAME}</div>
     <div class="header-subtitle">인스타 추첨 이벤트</div>
 </div>
 """, unsafe_allow_html=True)
@@ -378,7 +385,7 @@ def main():
     with col:
         # Step 1: Account Selection
         if st.session_state.step == 1:
-            st.markdown(f'<div class="cute-card"><h3>1. 계정을 선택해 주세요 {APP_EMOJI}</h3></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="cute-card"><h3>1. 계정을 선택해 주세요{SPACE_EMOJI}</h3></div>', unsafe_allow_html=True)
             accounts = get_instagram_accounts(ENV_TOKEN, mock=mock_mode)
             if not accounts:
                 st.warning("연결된 계정이 없어요!")
@@ -439,7 +446,7 @@ def main():
                 
                 st.write("")
                 count = len(selected_ids)
-                if st.button(f"다음 단계로 ({count}개 선택됨) {APP_EMOJI}"):
+                if st.button(f"다음 단계로 ({count}개 선택됨){SPACE_EMOJI}"):
                     if count == 0: st.error("게시물을 최소 하나는 선택해 주세요!")
                     else:
                         with st.spinner("댓글 수집 중..."):
@@ -530,7 +537,7 @@ def main():
                 st.session_state.step = 1
                 st.rerun()
 
-    st.markdown(f'<div style="text-align:center; padding: 2rem; color: #DDD;">{APP_EMOJI} {BRANDING_NAME} with Hoony {APP_EMOJI}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="text-align:center; padding: 2rem; color: #DDD;">{EMOJI_SPACE}{BRANDING_NAME} with Hoony{SPACE_EMOJI}</div>', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
