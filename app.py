@@ -55,6 +55,11 @@ css_code = f"""
         font-family: 'Fredoka', sans-serif;
     }}
 
+    /* 상단 Deploy 버튼 및 점 3개 메뉴(헤더) 숨기기 */
+    header[data-testid="stHeader"] {{
+        display: none !important;
+    }}
+
     .header {{
         text-align: center;
         padding: 1.5rem 0;
@@ -74,11 +79,11 @@ css_code = f"""
 
     .cute-card {{
         background: var(--card-bg);
-        border: 4px solid #FEE;
+        border: 4px solid var(--primary-color);
         border-radius: 30px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 10px 20px rgba(255, 183, 197, 0.1);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
     }}
 
     .stButton>button {{
@@ -90,7 +95,7 @@ css_code = f"""
         font-weight: 600 !important;
         font-size: 1.1rem !important;
         transition: transform 0.2s;
-        box-shadow: 0 5px 15px rgba(255, 183, 197, 0.4);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         width: 100%;
     }}
 
@@ -167,7 +172,7 @@ css_code = f"""
     
     .selected .insta-post {{
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 4px rgba(255, 183, 197, 0.3);
+        box-shadow: 0 0 0 2px var(--primary-color);
     }}
 
     .insta-header {{
@@ -194,7 +199,7 @@ css_code = f"""
         justify-content: center;
         font-size: 10px;
         font-weight: bold;
-        color: #FFB7C5;
+        color: var(--primary-color);
     }}
     .insta-username {{
         font-weight: 600;
@@ -245,7 +250,7 @@ css_code = f"""
         flex: 1;
         text-align: center;
         background: #FFF;
-        border: 2px solid #FEE;
+        border: 2px solid var(--primary-color);
         border-radius: 15px;
         padding: 15px;
     }}
@@ -256,7 +261,7 @@ css_code = f"""
     }}
 
     .preview-item {{
-        background: #FFF9FA;
+        background: var(--bg-color);
         border-radius: 12px;
         padding: 10px 15px;
         margin-bottom: 8px;
